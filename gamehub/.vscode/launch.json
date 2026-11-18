@@ -1,0 +1,12 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "GameHub server",
+      "request": "launch",
+      "mainClass": "gamehub.Main",
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}
