@@ -18,3 +18,7 @@ export const sv = (tag, props = {}, ...kids) => {
   return e;
 };
 export const PLAYER = ['Red', 'Blue'];
+export const sleep = ms => new Promise(r => setTimeout(r, ms));
+/** Big X (player 0) or O (player 1) drawn as SVG so it always fills the same share of its square. */
+export const mark = v => sv('svg', { viewBox: '0 0 100 100', class: 'mark', 'aria-hidden': 'true' },
+  v ? sv('circle', { cx: 50, cy: 50, r: 30 }) : [sv('line', { x1: 20, y1: 20, x2: 80, y2: 80 }), sv('line', { x1: 80, y1: 20, x2: 20, y2: 80 })]);

@@ -1,6 +1,6 @@
 # GameHub
 
-Eleven two-player games, playable between two computers (join by game code) or against the computer (easy / hard / unbeatable), plus a tournament mode and a stats page.
+Ten two-player games, playable between two computers (join by game code) or against the computer (easy / hard / unbeatable), plus a tournament mode and a stats page.
 
 Java 17+ backend (JDK only, no libraries), plain JavaScript frontend (no build step).
 
@@ -22,23 +22,27 @@ Every page has Back, Home, a Games menu, Tournament and Stats in the top bar.
 src/gamehub/
   Main.java              HTTP server + static files (single-page-app fallback)
   Api.java               /api/* endpoints
-  Room.java, Rooms.java  game rooms, codes, tournament logic, AI turns
+  Room.java, Rooms.java  game rooms, codes, tournament logic, one computer move per /api/ai call
   Stats.java             win/loss/draw counters -> data/stats.properties
   GameRegistry.java      the list of games (one line each)
   core/                  GameState, AI, Minimax (shared alpha-beta), Json
   games/                 one rules file per game (TicTacToe.java, Checkers.java, ...)
   ai/                    one AI file per game (TicTacToeAI.java, CheckersAI.java, ...)
 web/
-  index.html, style.css, app.js   router, lobby, live room, stats
+  index.html, style.css, app.js   router, lobby, live room, stats, computer-move loop
+  rules.js                        text for each game's Rules popup
+  util.js                         DOM helpers, X/O marks
   games/<id>.js                   one renderer per game
 ```
 
-## Add a game (4 steps)
+## Add a game (5 steps)
 
 1. `games/MyGame.java` extends `GameState`: `copy()`, `moves(p)`, `apply(p, move)`, `fill(map, viewer)`.
 2. `ai/MyGameAI.java`: extend `Minimax` (supply `eval()`), or implement `AI` directly for dice / hidden-information games.
 3. Add one `reg(new GameDef("mygame", ...))` line in `GameRegistry.java`.
-4. `web/games/mygame.js`: `export default (root, room, api) => { ... }` draws the board and calls `api.move([...])`.
+4. `web/games/mygame.js`: `export default (root, room, api, prev) => { ... }` draws the board and calls `api.move([...])`. It may return a promise if it animates the opponent's last move.
+
+5. Add a `RULES` entry for it in `web/rules.js` so its Rules button works.
 
 The lobby, URL, game codes, computer modes, tournament pool and stats pick it up automatically.
 
@@ -55,11 +59,11 @@ The server reads `PORT` and listens on all interfaces.
 | Game | Easy | Hard | Unbeatable |
 |---|---|---|---|
 | Tic tac toe | mostly random | 3 moves ahead | full solve, never loses |
-| Ultimate TTT, Dots and boxes, Mancala, Quoridor, Tag, Checkers, Connect 4 | mostly random | shallow alpha-beta | alpha-beta with iterative deepening, about 2.5-3 s per move |
+| Ultimate TTT, Dots and boxes, Mancala, Quoridor, Checkers, Connect 4 | mostly random | shallow alpha-beta | alpha-beta with iterative deepening, about 2.5-3 s per move |
 | Shut the box | mostly random | minimises expected score (exact DP) | exact DP, plays for win probability against your score |
 | Yahtzee | simple | keep-most-common heuristic | exact expectimax over all rerolls |
 | Battleship | random shots | hunt and target | probability density, public information only |
 
 Caveat: only Tic Tac Toe is mathematically solved. The others are time-limited search: very strong, not proven perfect. Shut the Box, Yahtzee and Battleship involve luck or hidden information, so no fair AI can guarantee you zero wins; the stats page counts what really happens. To strengthen a search AI, raise `unbeatableMs()` in its AI file.
 
-Rules notes: Yahtzee has no extra-Yahtzee bonus or joker. Tag is turn-based: whoever spent fewer turns as "it" after 60 turns wins. Battleship fleets are auto-placed (Shuffle until happy).
+Rules notes: Yahtzee has no extra-Yahtzee bonus or joker. Battleship fleets are auto-placed (Shuffle until happy).

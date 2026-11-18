@@ -15,6 +15,7 @@ public class Room {
     private boolean recorded;
     private List<GameDef> tGames = new ArrayList<>(); private int tIndex; private final int[] tWins = new int[2]; private int tDraws, tWinner = -1; private boolean tDone;
     private final Random rng = new Random();
+    private int moveNo, gameNo = 1, lastBy = -1; private int[] lastMove;   // last applied move, so the page can show it
 
     public Room(String code, GameDef def, String mode, String hostCid, boolean tournament) {
         this.code = code; this.mode = mode; this.tournament = tournament;
@@ -25,7 +26,7 @@ public class Room {
             tGames = new ArrayList<>(all.subList(0, Math.min(5, all.size()))); this.def = tGames.get(0);
         } else this.def = def;
         state = this.def.factory().get();
-        settle();
+        finish();
     }
 
     private static String tok() { byte[] b = new byte[9]; SR.nextBytes(b); return HexFormat.of().formatHex(b); }
@@ -52,10 +53,26 @@ public class Room {
         boolean ok = false;
         if (state.canMove(slot)) for (int[] x : state.moves(slot)) if (Arrays.equals(x, m)) { ok = true; break; }
         if (!ok) throw new ApiError("Illegal move or not your turn.");
-        state.apply(slot, m); version++;
-        settle();
+        state.apply(slot, m); record(slot, m);
+        finish();
         return build(slot);
     }
+
+    /** Plays ONE computer move (the page calls this repeatedly, pausing between moves so each one can be seen). */
+    public synchronized Map<String, Object> aiStep(int slot, String t) {
+        auth(slot, t);
+        if (aiLevel == null) throw new ApiError("That game is not against the computer.");
+        if (aiTurn()) {
+            int[] m = def.ai().choose(state.copy(), 1, aiLevel, rng);
+            state.apply(1, m); record(1, m);
+            finish();
+        }
+        return build(slot);
+    }
+
+    private boolean aiTurn() { return aiLevel != null && !state.over() && state.canMove(1); }
+
+    private void record(int p, int[] m) { version++; moveNo++; lastBy = p; lastMove = m.clone(); touched = System.currentTimeMillis(); }
 
     public synchronized Map<String, Object> next(int slot, String t) {
         auth(slot, t);
@@ -69,14 +86,10 @@ public class Room {
         return build(slot);
     }
 
-    private void newGame() { state = def.factory().get(); recorded = false; version++; settle(); }
+    private void newGame() { state = def.factory().get(); recorded = false; version++; gameNo++; moveNo = 0; lastBy = -1; lastMove = null; finish(); }
 
-    private void settle() {
-        int guard = 0;
-        while (aiLevel != null && !state.over() && state.canMove(1) && guard++ < 500) {
-            int[] m = def.ai().choose(state.copy(), 1, aiLevel, rng);
-            state.apply(1, m); version++;
-        }
+    /** Records the result once a game is over. */
+    private void finish() {
         if (state.over() && !recorded) {
             recorded = true;
             String sm = aiLevel != null ? aiLevel : "pvp";
@@ -101,6 +114,8 @@ public class Room {
         v.put("over", state.over()); v.put("winner", state.winner);
         boolean can = started() && state.canMove(slot);
         v.put("canMove", can); v.put("legal", can ? state.moves(slot) : List.of());
+        v.put("aiTurn", aiTurn()); v.put("gameNo", gameNo);
+        v.put("last", lastMove == null ? null : Map.of("n", moveNo, "by", lastBy, "m", lastMove));
         v.put("s", state.view(slot));
         if (tournament) {
             Map<String, Object> t = new LinkedHashMap<>();

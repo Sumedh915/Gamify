@@ -19,7 +19,6 @@ public final class GameRegistry {
         reg(new GameDef("shutbox", "Shut the Box", "Roll, flip tiles, lowest total wins.", "⚀", ShutTheBox::new, new ShutTheBoxAI()));
         reg(new GameDef("yahtzee", "Yahtzee", "Thirteen rounds of five dice.", "⚄", Yahtzee::new, new YahtzeeAI()));
         reg(new GameDef("quoridor", "Quoridor", "Race to the far side, build walls.", "♟", Quoridor::new, new QuoridorAI()));
-        reg(new GameDef("tag", "Tag", "Don't be it when the clock runs out.", "☄", Tag::new, new TagAI()));
         reg(new GameDef("checkers", "Checkers", "Jump, crown, corner.", "⛀", Checkers::new, new CheckersAI()));
         reg(new GameDef("connect4", "Connect 4", "Drop discs, line up four.", "●", Connect4::new, new Connect4AI()));
         reg(new GameDef("battleship", "Battleship", "Hide your fleet, sink theirs.", "⚓", Battleship::new, new BattleshipAI()));

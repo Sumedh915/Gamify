@@ -64,7 +64,7 @@ nav{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;max-width:1000px;ma
 /* dots */
 .dots{width:min(94vw,440px)}.dot{fill:var(--ink)}.edge{stroke:#cfcbe6;stroke-width:6;stroke-linecap:round}.edge.open{stroke:#aaa5d6}.edge.drawn{stroke:var(--pc);stroke-width:8}
 .hit{stroke:transparent;stroke-width:26;cursor:pointer}.hit:hover{stroke:rgba(255,201,51,.8)}.box{fill:var(--pc);opacity:.35}
-.score,.tag-info,.note{font:700 1.1rem Rubik,sans-serif;text-align:center}
+.score,.note{font:700 1.1rem Rubik,sans-serif;text-align:center}
 /* mancala */
 .mancala{display:flex;gap:.7rem;align-items:stretch;background:#c98b4e;border:var(--line);border-radius:24px;padding:.8rem;box-shadow:var(--shadow);max-width:100%}
 .rows{display:grid;gap:.6rem}.row{display:flex;gap:.5rem}
@@ -86,11 +86,6 @@ nav{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;max-width:1000px;ma
 .quor{width:min(96vw,620px)}.qcell{fill:#fff;stroke:var(--ink);stroke-width:2}.qcell.g0{fill:#ffd1c9}.qcell.g1{fill:#d4e1ff}.qcell.ok{fill:var(--sun);cursor:pointer}
 .qwall{fill:var(--ink)}.qslot{fill:transparent;cursor:pointer}.qslot:hover{fill:rgba(255,201,51,.9)}.pawn-c.p0{fill:var(--p0)}.pawn-c.p1{fill:var(--p1)}.pawn-c{stroke:var(--ink);stroke-width:3}
 .seg{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center}.seg .btn.on{background:var(--sun)}
-/* tag */
-.tag{display:grid;grid-template-columns:repeat(9,1fr);gap:3px;width:min(94vw,500px)}
-.tag .t{aspect-ratio:1;border:2px solid var(--ink);border-radius:6px;background:#fff;display:grid;place-items:center;padding:0}
-.tag .t:not(:disabled){background:var(--sun);cursor:pointer}.tag .t:disabled{cursor:default}
-.pawn{width:78%;aspect-ratio:1;border-radius:50%;background:var(--pc);border:3px solid var(--ink);display:grid;place-items:center;color:#fff;font:800 .7rem Rubik,sans-serif}.pawn.it{outline:4px solid var(--sun);outline-offset:1px}
 /* checkers */
 .checkers{display:grid;grid-template-columns:repeat(8,1fr);width:min(94vw,520px);border:var(--line);box-shadow:var(--shadow)}
 .ck{aspect-ratio:1;display:grid;place-items:center}.ck.dark{background:#6b4b8a}.ck.light{background:#f2e8d8}
@@ -108,3 +103,23 @@ nav{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;max-width:1000px;ma
 .fleet{display:flex;gap:.4rem;flex-wrap:wrap;justify-content:center;font-size:.85rem}.fleet span{border:2px solid var(--ink);border-radius:6px;padding:0 .4rem;background:#fff}.fleet .gone{text-decoration:line-through;opacity:.5}
 @media (max-width:520px){nav{gap:.4rem}.btn{padding:.35rem .7rem}.bigcode{font-size:2.4rem}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* X and O marks, mancala highlights, shut the box label */
+.cell{display:grid;place-items:center;overflow:hidden}
+.mark{display:block;width:100%;height:100%}
+.mark *{fill:none;stroke:currentColor;stroke-width:12;stroke-linecap:round}
+.sub .big .mark{width:78%;height:78%}
+.pit,.store{transition:transform .12s,background .12s}
+.pit.from{background:#ffe28a;outline:4px dashed var(--ink);outline-offset:2px}
+.pit.drop,.store.drop{background:var(--sun);transform:scale(1.14)}
+.pit.land,.store.land{outline:4px solid var(--sun);outline-offset:2px}
+.mnote{min-height:3.2em;max-width:46ch;margin:.2rem 0;text-align:center;font-weight:700}
+.dice-label{font:800 1rem Rubik,sans-serif;margin:0;text-align:center}
+/* rules popup */
+.chip.rules{cursor:pointer;background:#fff}.chip.rules:hover{background:var(--sun)}
+.modal-back{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:1rem;background:rgba(27,23,64,.62)}
+.modal{position:relative;width:100%;max-width:640px;max-height:88vh;overflow:auto;background:var(--paper);border:var(--line);border-radius:16px;box-shadow:var(--shadow);padding:1.2rem 1.4rem 1.4rem}
+.modal h2{margin:0 3rem .2em 0;font-size:1.5rem}
+.modal h3{font:800 1.05rem Rubik,sans-serif;margin:1rem 0 .3rem}
+.modal ul{margin:0;padding-left:1.2rem}.modal li{margin:.35rem 0}
+.modal-x{position:absolute;top:.7rem;right:.7rem;width:2.4rem;height:2.4rem;padding:0;border:var(--line);border-radius:10px;background:var(--sun);color:var(--ink);font:800 1.6rem/1 Rubik,sans-serif;cursor:pointer;box-shadow:3px 3px 0 var(--ink)}
+.modal-x:hover{background:#ffd966}

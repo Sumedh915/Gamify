@@ -4,7 +4,7 @@ import gamehub.core.*;
 import gamehub.games.ShutTheBox;
 import java.util.*;
 
-/** Hard: minimises expected final score (exact DP). Unbeatable: as player 2 maximises win probability vs the known target. */
+/** Hard: minimises expected final score (exact DP). Unbeatable: same, but once the opponent has finished it maximises win probability against their known total. */
 public class ShutTheBoxAI implements AI {
     private static final double[] E = new double[512];
     private static final double[][] W = new double[60][];
@@ -50,6 +50,7 @@ public class ShutTheBoxAI implements AI {
     public int[] choose(GameState st, int me, String level, Random rng) {
         ShutTheBox s = (ShutTheBox) st;
         List<int[]> mv = s.moves(me);
+        if (mv.size() == 1 && mv.get(0)[0] == 0) return mv.get(0);   // no available move
         if (level.equals("easy") && rng.nextDouble() < 0.8) return mv.get(rng.nextInt(mv.size()));
         boolean useWin = level.equals("unbeatable") && s.score[1 - me] >= 0;
         int[] best = mv.get(0); double bv = Double.NaN;

@@ -68,6 +68,7 @@ public final class Api {
                     return r.move(slot(q), q.get("t"), m);
                 } catch (NumberFormatException e) { throw new ApiError("Bad move."); }
             }
+            case "/api/ai": return Rooms.get(q.get("code")).aiStep(slot(q), q.get("t"));
             case "/api/next": return Rooms.get(q.get("code")).next(slot(q), q.get("t"));
             case "/api/rematch": return Rooms.get(q.get("code")).rematch(slot(q), q.get("t"));
             case "/api/stats": return Stats.get(cid(q));

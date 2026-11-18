@@ -1,4 +1,5 @@
-import { el } from './util.js';
+import { el, sleep } from './util.js';
+import { showRules, closeRules } from './rules.js';
 
 const $app = document.getElementById('app'), $nav = document.getElementById('nav');
 const uid = () => crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, () => (Math.random() * 16 | 0).toString(16));
@@ -69,6 +70,7 @@ function lobby(g) {
   document.title = g.name + ' · GameHub';
   $app.replaceChildren(
     el('h1', {}, el('span', { class: 'ico' }, g.icon), ' ', g.name), el('p', { class: 'lede' }, g.desc),
+    el('div', { class: 'row' }, el('button', { class: 'btn', onclick: () => showRules(g.id, g.name) }, 'Rules')),
     el('section', { class: 'panel' }, el('h2', {}, 'Play a friend'),
       el('p', {}, 'Create a game and share the code, or enter a code you were given.'),
       el('div', { class: 'row' }, el('button', { class: 'btn p', onclick: () => create({ game: g.id, mode: 'pvp' }) }, 'Create 2-player game')), joinBox()),
@@ -119,27 +121,30 @@ async function room(code, isTour) {
   const head = el('div', { class: 'room-head' }), tbar = el('div', { class: 'tbar' }), status = el('div', { class: 'status', 'aria-live': 'polite' }),
     board = el('div', { class: 'board' }), actions = el('div', { class: 'actions' });
   $app.replaceChildren(head, tbar, status, board, actions);
-  let ver = 0, busy = false, alive = true, mods = {}, seq = 0;
+  let ver = 0, busy = false, alive = true, mods = {}, seq = 0, driving = false, animating = false;
   const call = (path, extra = {}) => api(path, { code, slot: me.slot, t: me.token, ...extra }, 'POST');
 
   const A = {
+    say: t => { status.textContent = t == null ? shown.txt : t; status.className = t == null ? shown.cls : 'status wait'; },   // lets a game word the status box while it animates
     move: async m => {
       if (busy) return; busy = true;
-      status.className = 'status wait'; status.textContent = cur.mode === 'pvp' ? 'Sending…' : 'Computer is thinking…';
+      status.className = 'status wait'; status.textContent = 'Sending…';
       try { const v = await call('move', { m: m.join(',') }); busy = false; await show(v); }
       catch (e) { busy = false; flash(e.message); poll(true); }
     }
   };
-  let cur = { mode: 'pvp' };
+  let cur = { mode: 'pvp' }, shown = { txt: '', cls: 'status' };
 
   async function show(v) {
-    const my = ++seq; ver = v.version; cur = v;
+    if (v.version < ver) return;                 // an older response arrived late
+    const my = ++seq, prev = cur; ver = v.version; cur = v;
     document.title = (isTour ? 'Tournament' : v.name) + ' · GameHub';
     let mod = mods[v.game]; if (!mod) mod = mods[v.game] = await import(`/games/${v.game}.js`);
     if (!alive || my !== seq) return;
     const diff = { pvp: '2 players', easy: 'vs Computer · Easy', hard: 'vs Computer · Hard', unbeatable: 'vs Computer · Unbeatable' }[v.mode];
     head.replaceChildren(el('h1', {}, isTour ? `Game ${v.t.index + 1} of 5: ${v.name}` : v.name),
       el('div', { class: 'chips' }, el('span', { class: 'chip' }, diff), el('span', { class: `chip p${v.slot}` }, `You are ${v.slot ? 'Blue' : 'Red'}`),
+        el('button', { class: 'chip rules', onclick: () => showRules(v.game, v.name) }, 'Rules'),
         v.mode === 'pvp' ? el('button', { class: 'chip code', title: 'Copy invite link', onclick: () => { navigator.clipboard?.writeText(`${location.origin}${location.pathname}`); flash('Invite link copied'); } }, `Code ${v.code}`) : null));
     tbar.replaceChildren();
     if (isTour) {
@@ -158,11 +163,15 @@ async function room(code, isTour) {
     let txt, cls = 'status';
     if (v.over) { txt = v.winner === 2 ? 'Draw.' : v.winner === v.slot ? 'You win!' : 'You lose.'; cls += v.winner === v.slot ? ' win' : v.winner === 2 ? '' : ' lose'; }
     else if (v.canMove) { txt = 'Your turn'; cls += ' mine'; }
-    else { txt = v.mode === 'pvp' ? 'Opponent’s turn…' : 'Computer is thinking…'; cls += ' wait'; }
+    else { txt = v.mode === 'pvp' ? 'Opponent’s turn…' : 'Computer’s turn…'; cls += ' wait'; }
     if (!v.over && v.canMove && mod.status) txt = mod.status(v) || txt;
     if (!v.over && !v.canMove && mod.status) txt = mod.status(v) || txt;
-    status.className = cls; status.textContent = txt;
-    mod.default(board, v, A);
+    status.className = cls; status.textContent = txt; shown = { txt, cls };
+    animating = true;
+    try { await mod.default(board, v, A, prev); }      // a game may return a promise while it animates the opponent's move
+    finally { animating = false; }
+    if (!alive || my !== seq) return;
+    if (v.aiTurn) drive();
     if (v.over) {
       if (isTour) {
         if (v.t.done) {
@@ -173,9 +182,26 @@ async function room(code, isTour) {
     }
   }
 
+  /* Plays the computer's moves one at a time. Each step waits at least 0.8 s so the move before it stays on screen. */
+  async function drive() {
+    if (driving) return; driving = true;
+    try {
+      while (alive && cur.aiTurn && !cur.over) {
+        if (!cur.canMove) { status.className = 'status wait'; status.textContent = 'Computer’s turn…'; }
+        const think = setTimeout(() => { if (alive && cur.aiTurn && !cur.canMove) status.textContent = 'Computer is thinking…'; }, 800);
+        let v;
+        try { [v] = await Promise.all([call('ai'), sleep(800)]); } finally { clearTimeout(think); }
+        if (!alive) return;
+        await show(v);
+        if (cur !== v) break;                        // something newer was shown meanwhile
+      }
+    } catch (e) { if (alive) flash(e.message); }
+    finally { driving = false; }
+  }
+
   async function poll(force) {
-    if ((busy && !force) || !alive) return;
-    try { const v = await api('state', { code, slot: me.slot, t: me.token, v: ver }); if (!v.same && !busy) await show(v); }
+    if (((busy || driving || animating) && !force) || !alive) return;
+    try { const v = await api('state', { code, slot: me.slot, t: me.token, v: ver }); if (!v.same && !busy && !driving && !animating) await show(v); }
     catch (e) { if (alive) { status.className = 'status lose'; status.textContent = e.message; } }
   }
   const timer = setInterval(poll, 1000);
@@ -185,7 +211,7 @@ async function room(code, isTour) {
 
 /* ---------- router ---------- */
 function route() {
-  cleanup(); cleanup = () => {};
+  cleanup(); cleanup = () => {}; closeRules();
   document.querySelector('.menu')?.removeAttribute('open');
   document.title = 'GameHub';
   const p = location.pathname.split('/').filter(Boolean);
