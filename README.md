@@ -1,4 +1,4 @@
-# GameHub
+# Gamify
 
 Eleven two-player games, playable between two computers (join by game code) or against the computer (easy / hard / unbeatable), plus a tournament mode and a stats page.
 
