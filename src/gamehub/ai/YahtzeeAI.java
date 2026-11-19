@@ -42,7 +42,6 @@ public class YahtzeeAI implements AI {
 
     public int[] choose(GameState st, int me, String level, Random rng) {
         Yahtzee y = (Yahtzee) st; card = y.card[me];
-        List<int[]> mv = y.moves(me);
         if (level.equals("easy")) {
             if (y.rolls > 0 && rng.nextDouble() < 0.5) return new int[]{0, 1 + rng.nextInt(31)};
             double[] o = new double[1]; return new int[]{1, bestCat(card, y.dice, o)};
